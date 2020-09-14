@@ -1,0 +1,390 @@
+openapi: 3.0.0
+info:
+  title: InstitutionConfigurableFieldsAPI
+  description: |
+    This is the API to be used for the maintenance of the required field names for per Institution. The API will be able
+    to retrieve the list of required field names per institution. Creation and updating of existing records will also be supported.
+  contact:
+    name: Andre Kapp
+    email: andrekapp@mamamoney.co.za
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.1.0
+servers:
+- url: https://virtserver.swaggerhub.com/Andre6/InstitutionConfigurableFields/1.0.0
+  description: SwaggerHub API Auto Mocking
+- url: https://virtserver.swaggerhub.com/Andre6/InstitutionRequiredFieldsAPI/1.0.0
+  description: SwaggerHub API Auto Mocking
+paths:
+  /v1/institutions/genericlookup:
+    get:
+      tags:
+      - Dropdown Values
+      summary: Retrieve a list of values for a certain lookup type.
+      description: "This endpoint will make available a list of values for the supplied\
+        \ lookup type. This is a generic service that enable FA to buildup a \ngeneric\
+        \ dropdown function so that the values can be supplied by Claire and not hardcoded\
+        \ in the FA.\n"
+      operationId: retrieve_gdlookup_values
+      parameters:
+      - name: lookup_code
+        in: query
+        description: The lookup code to return values for.
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/LookupCode'
+      responses:
+        "200":
+          description: Retrieved list of values to create the dropdown
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LookupValuesList'
+        "400":
+          description: bad input parameter
+  /v1/institutions/configurable-fields:
+    get:
+      tags:
+      - Configurable Fields
+      summary: Retrieve a list of available fields that can be managed.
+      description: |
+        This endpoint will retrieve all the configurable fields names that can be configured for an institution. This will consists of of a code and a value..
+      operationId: retrieve_configurable-fields
+      responses:
+        "200":
+          description: Retrieve list of configurable field names.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConfigurableField'
+        "400":
+          description: Bad request. System error.
+  /v1/institutions/{institution_id}/configurable-fields:
+    get:
+      tags:
+      - Configured Fields
+      summary: Retrieve a list of configured fields for the institution. Filtering
+        will can be added the filted for required set to true or false.
+      description: |
+        This endpoint will retrieve the configured field names for an institution.
+      operationId: retrieveConfiguredFields
+      parameters:
+      - name: institution_id
+        in: path
+        description: The institution id to retrieve the field names for
+        required: true
+        style: simple
+        explode: false
+        schema:
+          minimum: 1
+          type: integer
+      - name: required
+        in: query
+        description: If present then it will filter the required fields upon status.
+          Required/not required.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: Retrieve list of configured field names for an institution.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConfiguredFieldRecord'
+        "400":
+          description: Bad request. System error.
+    put:
+      tags:
+      - RequiredFieldRecord
+      summary: Update the list of institution required fields passed as the payload.
+      description: Update a single institution required fields record
+      operationId: update_required_fields
+      parameters:
+      - name: institution_id
+        in: path
+        description: The institution id to retrieve the field names for
+        required: true
+        style: simple
+        explode: false
+        schema:
+          minimum: 1
+          type: integer
+      requestBody:
+        description: Institution Required Field Record to be updated
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/RequiredFieldDTO'
+      responses:
+        "202":
+          description: Required Field Records updated
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RequiredFieldDTO'
+        "400":
+          description: invalid input, object invalid
+    post:
+      tags:
+      - RequiredFieldRecord
+      summary: Create the list of institution required fields.
+      description: Create list of institution required fields
+      operationId: create_required_fields
+      parameters:
+      - name: institution_id
+        in: path
+        description: The institution id to retrieve the field names for
+        required: true
+        style: simple
+        explode: false
+        schema:
+          minimum: 1
+          type: integer
+      requestBody:
+        description: Institution Required Field Record
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/RequiredFieldDTO'
+      responses:
+        "201":
+          description: Required Field Records created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RequiredFieldDTO'
+        "400":
+          description: invalid input, object invalid
+components:
+  schemas:
+    LookupCode:
+      type: string
+      enum:
+      - relationship
+    LookupValuesList:
+      type: array
+      example:
+      - HUSBAND
+      - WIFE
+      - SON
+      - DAUGHTER
+      - GRANDPARENT
+      - RELATIVE
+      - FRIEND
+      - MYSELF
+      items:
+        type: string
+    ConfigurableField:
+      required:
+      - fieldNameCode
+      - fieldNameValue
+      type: object
+      properties:
+        fieldNameCode:
+          type: string
+          example: RECIPIENT_NAME
+        fieldNameValue:
+          type: string
+          example: Recipient Value
+    RequiredFieldDTO:
+      required:
+      - max
+      - min
+      - required
+      type: object
+      properties:
+        required:
+          type: boolean
+          example: true
+        min:
+          type: integer
+          description: The minimum length of the field, not the minimum value
+          example: 0
+        max:
+          type: integer
+          description: The maximum length of the field.
+          example: 4
+        display:
+          type: boolean
+          description: Set to display in the UI
+          example: true
+          default: false
+        regex:
+          type: string
+          description: The regex pattern to be applied to the field data entered.
+          example: '[A-Z]{4}[0][0-9]{6}'
+        help-text:
+          type: string
+          description: Helpp text to display.
+          example: Street and number
+        prefix:
+          type: string
+          example: PK002
+    RequiredFieldRecord:
+      required:
+      - field-name
+      - max-length
+      - min-length
+      - required
+      type: object
+      properties:
+        field-name-code:
+          type: string
+          description: The name of the field - corresponds to the code value of the
+            get names function.
+          example: BANK_NAME
+        required:
+          type: boolean
+          description: Flagged that this input field is required to be filled in the
+            user
+          example: true
+        min-length:
+          type: integer
+          description: The minimum length of the input field
+          example: 10
+          default: 0
+        max-length:
+          type: integer
+          description: The maximum length of the input field
+          example: 50
+          default: 0
+        field-regex:
+          type: string
+          description: The regex pattern to be applied to the input field.
+          example: '[A-Z]{4}[0][0-9]{6}'
+    ConfiguredFieldRecord:
+      required:
+      - display
+      - label
+      - name
+      - type
+      type: object
+      properties:
+        name:
+          title: name
+          maxLength: 50
+          type: string
+          example: CITY
+        label:
+          title: label
+          maxLength: 50
+          type: string
+          example: City
+        type:
+          title: type
+          maxLength: 50
+          type: string
+          example: text
+        display:
+          title: display
+          type: boolean
+          description: Indicate whether this field must be displayed on FA, USSD and
+            Website
+          example: true
+        note:
+          title: note
+          maxLength: 250
+          type: string
+          example: 16 to 34 characters, an International Bank Account Number used
+            to identify an overseas bank account. Can be found on paper statement.
+        prefix:
+          type: string
+          example: PK001
+        error:
+          title: error
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/Error'
+        validation:
+          title: validation
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/Validation'
+    Error:
+      required:
+      - max
+      - min
+      - pattern
+      - required
+      type: object
+      properties:
+        required:
+          title: required
+          maxLength: 50
+          type: string
+          readOnly: true
+          example: City is required
+        min:
+          title: required
+          maxLength: 50
+          type: string
+          readOnly: true
+          example: Should be at least 20 characters
+        max:
+          title: required
+          maxLength: 50
+          type: string
+          readOnly: true
+          example: Should be maximum 100 characters
+        pattern:
+          title: optional
+          maxLength: 50
+          type: string
+          readOnly: true
+          example: '[A-Z]{4}[0][0-9]{6}'
+    Validation:
+      required:
+      - max
+      - min
+      - pattern
+      - required
+      type: object
+      properties:
+        required:
+          title: required
+          maxLength: 50
+          type: string
+          readOnly: true
+          example: "true"
+        min:
+          title: required
+          maxLength: 50
+          type: integer
+          format: int32
+          readOnly: true
+          example: 20
+          default: 0
+        max:
+          title: required
+          maxLength: 50
+          type: integer
+          format: int32
+          readOnly: true
+          example: 100
+          default: 0
+        pattern:
+          title: required
+          maxLength: 50
+          type: string
+          readOnly: true
+          example: test

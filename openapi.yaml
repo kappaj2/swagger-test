@@ -1,0 +1,535 @@
+openapi: 3.0.0
+info:
+  title: Manual Deposit Management API
+  description: This is a simple API
+  contact:
+    email: andrekapp@mamamoney.co.za
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+servers:
+- url: https://virtserver.swaggerhub.com/Andre6/ManualDepositManagementAPI/1.0.0
+  description: SwaggerHub API Auto Mocking
+tags:
+- name: ADMIN
+  description: Secured Admin-only calls. This should have access restricted to BACKEND
+    roles in Claire.
+- name: UI
+  description: Secured for UI presentation.
+paths:
+  /deposits/customer/{cust-id}/deposit/{deposit-id}:
+    get:
+      tags:
+      - UI
+      summary: Retrieve split deposit information
+      description: |
+        Search the deposit table for split deposit details. This will retrieve the master and two child record details
+      operationId: searchSplitDepositInformation
+      parameters:
+      - name: cust-id
+        in: path
+        description: The customer id to use
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+        example: 12343
+      - name: deposit-id
+        in: path
+        description: The deposit id to use to search for. This MUST be one of the
+          two child depoist id's and not the master deposit id.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+        example: 4355322
+      responses:
+        "200":
+          description: search results matching criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SplitDepositDTO'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+  /deposits/manual-creation:
+    get:
+      tags:
+      - ADMIN
+      summary: Retrieve all manual deposits
+      description: "Search the deposit table for all PAYABLE deposits linked to the\
+        \ msisdn. Deposit must not have been part of a previous SPLIT or MERGE and\
+        \ \nmust be assigned to the customer.\n"
+      operationId: searchManualDepositTable
+      parameters:
+      - name: status
+        in: query
+        description: The deposit status to search for. Valid values are PENDING_APPROVAL,
+          ACCEPT and REJECTED
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+        example: ACCEPT
+      - name: deposit-reference
+        in: query
+        description: The reference to search for. Most of the times it is the customer
+          msisdn that is used.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+        example: Ticket123
+      - name: bank
+        in: query
+        description: The bank to search for.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+        example: FNB - ATM
+      - name: customer-msisdn
+        in: query
+        description: The customer msisdn to search for.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+        example: "27782014637"
+      responses:
+        "200":
+          description: search results matching criteria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ManualDeposit'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+    post:
+      tags:
+      - ADMIN
+      summary: Create a new manual deposit
+      description: "Insert a new ManualDeposit record into the table. \n"
+      operationId: insertManualDepositTable
+      requestBody:
+        description: ManualDeposit record created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualDepositCreate'
+      responses:
+        "201":
+          description: Created a new ManualDeposit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManualDeposit'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+  /deposits/manual-creation/{manual-deposit-creation-id}:
+    get:
+      tags:
+      - ADMIN
+      summary: Retrieve a specific manual deposit using the deposit id
+      description: "Search the deposit table for all PAYABLE deposits linked to the\
+        \ msisdn. Deposit must not have been part of a previous SPLIT or MERGE and\
+        \ \nmust be assigned to the customer.\n"
+      operationId: searchManualDepositTableWithId
+      parameters:
+      - name: manual-deposit-creation-id
+        in: path
+        description: The manual deposit id to search for
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+        example: 1023112
+      responses:
+        "200":
+          description: search results matching criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManualDeposit'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+    put:
+      tags:
+      - ADMIN
+      summary: Approve/Reject a specific manual deposit using the deposit id.
+      description: |
+        Approve or Reject a manual deposit. This can also approve the split of an existing deposit that was split using the manual desposit split functionality.
+      operationId: approveManualDepositId
+      parameters:
+      - name: manual-deposit-creation-id
+        in: path
+        description: The manual deposit id to search for
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+        example: 1023112
+      requestBody:
+        description: The payload containing the action and other reference information
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualDepositApprove'
+      responses:
+        "200":
+          description: Result of the updated action performed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManualDepositApprove'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+  /deposits/customer/{msisdn}/split:
+    get:
+      tags:
+      - ADMIN
+      summary: Retrieve all deposits available to split for this msisdn
+      description: "Search the deposit table for all PAYABLE deposits linked to the\
+        \ msisdn. Deposit must not have been part of a previous SPLIT or MERGE and\
+        \ \nmust be assigned to the customer.\n"
+      operationId: searchDepositTable
+      parameters:
+      - name: msisdn
+        in: path
+        description: The customer msisdn to search for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+        example: 27782014637
+      responses:
+        "200":
+          description: search results matching criteria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Deposit'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+  /deposits/customer/{msisdn}/split/{deposit-id}:
+    post:
+      tags:
+      - ADMIN
+      summary: Create a split deposit for the customer and depositId
+      description: |
+        Create two split records in the ManualDepositCreation table from the available Deposit table record.
+      operationId: createSplitDeposit
+      parameters:
+      - name: msisdn
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+        example: 27782014637
+      - name: deposit-id
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+        example: 3839128
+      requestBody:
+        description: The payload containing the creation response
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SplitDepositCreate'
+      responses:
+        "201":
+          description: Response to the creation of the split deposit records in the
+            ManualDespositCreation table.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SplitDepositCreated'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+components:
+  schemas:
+    ManualDepositCreate:
+      type: object
+      properties:
+        deposit-reference:
+          type: string
+          example: Test reference
+        bank:
+          type: string
+          example: ABSA - ATM
+        originial-amount:
+          type: number
+          example: 6000
+        status:
+          type: string
+          example: PENDING_APPROVAL
+        customer-msisdn:
+          type: string
+          example: "27782014637"
+    ManualDepositApprove:
+      type: object
+      properties:
+        deposit-reference:
+          type: string
+          example: Test reference
+        bank:
+          type: string
+          example: ABSA - ATM
+        originial-amount:
+          type: number
+          example: 6000
+        status:
+          type: string
+          example: ACCEPTED
+        customer-msisdn:
+          type: string
+          example: "27782014637"
+    ManualDeposit:
+      required:
+      - admin-id
+      - amount
+      - bank
+      - customer-msisdn
+      - date-created
+      - date-updated
+      - deposit-reference
+      - deposit-type
+      - id
+      - penalty-fee-amount
+      - status
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 210
+        amount:
+          type: number
+          example: 6000
+        penalty-fee-amount:
+          type: number
+          example: 0
+        deposit-reference:
+          type: string
+          example: Test reference
+        bank:
+          type: string
+          example: ABSA - ATM
+        customer-msisdn:
+          type: string
+          example: "27782014637"
+        admin-id:
+          type: string
+          example: 9df229fe-ad32-4ac9-974c-39dcde388bfc
+        deposit-type:
+          type: string
+          example: EFT
+        status:
+          type: string
+          example: REJECTED
+        date-created:
+          type: string
+          example: 30/06/2020 12:29:56:000
+        date-updated:
+          type: string
+          example: 30/06/2020 12:29:56:000
+        parent-amount:
+          type: number
+          description: When using split functionality this field will contain the
+            some of the two splits.
+          example: 12000
+    DepositCustomer:
+      required:
+      - additional-information
+      - customer-id
+      - href
+      - identification-delivery-date
+      - identification-expiration-date
+      type: object
+      properties:
+        customer-id:
+          type: string
+          example: "736774"
+        identification-expiration-date:
+          type: string
+          format: date
+          example: 2099-12-31
+        identification-delivery-date:
+          type: string
+          format: date
+          example: 1990-01-01
+        additional-information:
+          type: object
+        href:
+          type: string
+          example: /customers/736774
+    Deposit:
+      required:
+      - allowed-forced-payout
+      - amount
+      - bank
+      - customer
+      - href
+      - is-duplicate
+      - origin
+      - original-amount
+      - penalty-fee-amount
+      - reference
+      - status
+      - time-created
+      - time-updated
+      type: object
+      properties:
+        customer:
+          type: object
+          allOf:
+          - $ref: '#/components/schemas/DepositCustomer'
+        amount:
+          type: number
+          example: 4925.01
+        original-amount:
+          type: number
+          example: 5000.01
+        penalty-fee-amount:
+          type: number
+          example: 75
+        status:
+          type: string
+          example: PAYABLE
+        is-duplicate:
+          type: boolean
+          example: false
+        origin:
+          type: string
+          example: MANUAL
+        bank:
+          type: string
+          example: ABSA - ATM
+        reference:
+          type: string
+          example: "27782014637"
+        time-created:
+          type: string
+          example: 19/06/2020 11:09:28:000
+        time-update:
+          type: string
+          example: 19/06/2020 11:09:28:000
+        allowed-forced-payout:
+          type: boolean
+          example: false
+        href:
+          type: string
+          example: /deposits/3831942
+    SplitDepositCreate:
+      required:
+      - amount-one
+      - amount-two
+      - reference
+      type: object
+      properties:
+        amount-one:
+          type: number
+          example: 2000
+        amount-two:
+          type: number
+          example: 3000
+        reference:
+          type: string
+          example: Ticket12343#
+    SplitDepositCreated:
+      required:
+      - child-one-manual-deposit-id
+      - child-two-manual-deposit-id
+      - master-manual-deposit-id
+      type: object
+      properties:
+        master-manual-deposit-id:
+          type: number
+          example: 231
+        child-one-manual-deposit-id:
+          type: number
+          example: 232
+        child-two-manual-deposit-id:
+          type: number
+          example: 233
+    SplitDepositDTO:
+      required:
+      - master-deposit
+      - split-one-deposit
+      - split-two-deposit
+      type: object
+      properties:
+        master-deposit:
+          type: object
+          allOf:
+          - $ref: '#/components/schemas/DepositInfo'
+        split-one-deposit:
+          type: object
+          allOf:
+          - $ref: '#/components/schemas/DepositInfo'
+        split-two-deposit:
+          type: object
+          allOf:
+          - $ref: '#/components/schemas/DepositInfo'
+    DepositInfo:
+      required:
+      - amount
+      - bank
+      - deposit-date
+      - deposit-id
+      - deposit-reference
+      - status
+      type: object
+      properties:
+        deposit-status:
+          type: string
+          example: PAYABLE
+        deposit-id:
+          type: integer
+          example: 123456
+        bank:
+          type: string
+          example: ABSA - ATM
+        deposit-reference:
+          type: string
+          example: TICKET1232323
+        amount:
+          type: number
+          example: 600
+        status:
+          type: string
+          example: PAYABLE
